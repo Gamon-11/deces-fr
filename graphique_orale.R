@@ -1,0 +1,919 @@
+# ============================================================================= #
+# ---- Analyse de données ----
+
+dataframe <- readRDS("../Data/Décès.rds")
+str(dataframe)
+dataframe$annee.décès <- format(dataframe$Date.décès, "%Y")
+dataframe <- subset(dataframe, !is.na(Age.décès))
+
+correspondance_regions <- c(
+  "Auvergne-Rhône-Alpes" = "ARA",
+  "Bourgogne-Franche_Comté" = "BFC",
+  "retagne" = "BRE",
+  "Centre-Val de Loire" = "CVL",
+  "Corse" = "COR",
+  "Grand Est" = "GES",
+  "Haut-de-France" = "HDF",
+  "Île-de-France" = "IDF",
+  "Normandie" = "NOR",
+  "Nouvelle-Aquitaine" = "NAQ",
+  "Occitanie" = "OCC",
+  "Pays de la Loire" = "PDL",
+  "Provence-Alpes_Côte d'Azur" = "PAC")
+
+# Ajout d'une nouvelle colonne avec les abréviations des noms de régions
+dataframe$Région_abr <- correspondance_regions[dataframe$Région.décès]
+
+# Séléction des années
+dataframe <- dataframe[dataframe$annee.décès >= 2019 & dataframe$annee.décès <= 2022, ]
+
+#==================================================================#
+# premier graphique : répartition des décès selon le sexe en fonction de l'année
+#==================================================================#
+
+table1 = with(dataframe, table(Sexe, annee.décès))
+print(table1)
+
+names(dimnames(table1)) <- c("Genre", "Année")
+print(table1)
+
+# Tableau de contingence 
+freq1 = round(100*prop.table(table1),2)
+print(freq1)
+
+# Profil colones 
+cols = round(100*prop.table(freq1,margin=2),2)
+Total = sum
+addmargins(cols,margin=1,FUN=Total,quiet=TRUE)
+
+
+# Graphique 1
+graph1 <- barplot(cols,
+                   beside = TRUE,
+                   col = c("deepskyblue1", "plum1"),
+                   main = "Répartition des décès selon le sexe en fonction de l’année",
+                   ylab = "Pourcentage",
+                   xlab = "Année",
+                   ylim = c(0,65),
+                   las = 1)
+
+# Ajout des étiquettes sur les barres
+text(x = graph1,
+     y = cols + 0,5,
+     labels = paste(cols, "%"),
+     pos = 3)
+
+# Ajout de la légende
+legend("topleft",
+       col=c("deepskyblue1",
+             "plum1"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+#mtext("BUT science des données", side = 1, line = 4, at = 1)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = max(graph1)+0.5)  # texte en bas à droite       
+
+# indicateur de l’intensité de l'éventuelle association
+chisq <- chisq.test(table1)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table1)*min(dim(table1)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#0.5599881%donc très faible
+
+text(11, 60,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Très faible association"),
+     col = "#5586C7",
+     cex = 1)
+
+
+
+
+#==================================================================#
+# deuxième graphique : répartition des décès en 2022 selon la région (nouvelles régions françaises)
+#==================================================================#
+
+#Sélection des décès de 2022
+data_2022 <- dataframe[dataframe$annee.décès == 2022,]
+
+# tableau de contingence 
+table2 = with(data_2022, table(Région_abr))
+table2 = sort(table2,decreasing = FALSE)
+print(table2)
+
+# Graphique 2
+graph2 <- barplot(table2,
+                  horiz = TRUE,
+                  col = c(rep("lightblue2",12),rep("#2B6499",1)),
+                  xlim = c(0,88000),
+                  main = "Répartition des décès en 2022 selon la région",
+                  xlab = "Effectif",
+                  las = 1)
+
+text(x =  table2,
+     y = graph2,
+     labels = sort(table(data_2022$Région_abr), decreasing = FALSE),
+     pos = 4,
+)
+#mtext("BUT science des données", side = 1, line = 4, at = 3000)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = 83000)  # texte en bas à droite       
+
+# indicateur de l’intensité de l'éventuelle association pour le deuxieme graphique
+chisq <- chisq.test(table2)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table2)*min(dim(table2)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#12.30624 
+
+text(78000, 2,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Faible association"),
+     col = "#5586C7",
+     cex = 1)
+
+
+#==================================================================#
+# troisième graphique : répartition des décès selon le sexe en fonction de l'année
+#==================================================================#
+
+# tableau de contingence 
+table3 = with(data_2022, table(Sexe, Région_abr))
+print(table3)
+
+# tableau de fréquence
+freq3 = round(100*prop.table(table3),2)
+
+# Profil colonne
+cols = round(100*prop.table(freq3,margin=2),2)
+Total = sum
+addmargins(cols,margin=1,FUN=Total,quiet=TRUE)
+
+# Graphique 3
+
+graph3 <- barplot(cols,
+                  beside = FALSE,
+                  horiz = TRUE,
+                  col = c("deepskyblue1", "plum1"),
+                  main = "Répartition des décès en 2022 selon le sexe par région",
+                  xlab = "Pourcentage \n \n \n",
+                  axes = FALSE,
+                  ylim = c(0,18),
+                  xlim = c(0,100),
+                  las = 1)
+
+legend("topleft",
+       col=c("deepskyblue1",
+             "plum1"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+
+percent = apply(cols,2,function(x) c(x[1]/2,head(cumsum(x), -1)+tail(x,-1)/2))
+text (y= rep(graph2, each = nrow(percent)),
+      x = c(percent),
+      labels = (c(paste0(cols, "%"))))
+
+#mtext("BUT science des données", side = 1, line = 4, at = 4)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = 96)  # texte en bas à droite       
+
+# indicateur de l’intensité de l'éventuelle association pour le troisième graphique
+chisq <- chisq.test(table3)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table3)*min(dim(table3)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#0.5209065 
+
+text(93, 17.5,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Faible association"),
+     col = "#5586C7",
+     cex = 1)
+
+
+#==================================================================#
+# quatrième graphique : répartition des décès en Normandie selon le département par année
+#==================================================================#
+
+# préparation des données
+data_normand <- subset(dataframe,
+                       subset = Région.décès  == "Normandie")
+data_normand <- within(data_normand, {
+  Département.décès = droplevels(Département.décès)
+  })
+
+# tableau de contingence 
+
+table5 = with(data_normand, table(Département.décès, annee.décès))
+print(table5)
+
+# tableau de fréquence
+freq5 = round(100*prop.table(table5),2)
+
+# Profil colonne
+cols = round(100*prop.table(freq5,margin=2),2)
+cols = cols[order(table5[, "2019"], decreasing = TRUE), ]
+print(cols)
+
+# Graphique 4
+graph4 <- barplot(cols,
+                  beside = TRUE,
+                  col=c("#5C6F68","#8AA39B","#95D9C3","#A4F9C8","#A7FFF6"),
+                  main = "Répartition des décès en Normandie selon le département par année",
+                  ylab = "Pourcentage",
+                  xlab = "Année",
+                  ylim = c(0,52), 
+                  las = 1)
+
+# Ajout des étiquettes sur les barres
+text(x = graph4,
+     y = cols + 0,5,
+     cex = 0.8,
+     labels = paste(cols, "%"),
+     pos = 3)
+
+legend("topright",
+       col=c("#5C6F68",
+             "#8AA39B",
+             "#95D9C3",
+             "#A4F9C8",
+             "#A7FFF6"),
+       legend=c("Seine-Maritime","Calvados","Manche","Eure","Orne"),
+       bty="n",pch=15, cex=1)
+
+#mtext("BUT science des données", side = 1, line = 4, at = min(graph4))  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = max(graph4))  # texte en bas à droite       
+
+# indicateur de l’intensité de l'éventuelle association pour le cinquième graphique
+print(table5)
+chisq <- chisq.test(table5)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table5)*min(dim(table5)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#1.050534
+
+text(3, 47,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Trés faible association"),
+     col = "#5586C7",
+     cex = 1)
+
+
+#==================================================================#
+# cinquième graphique : répartition des décès en Normandie selon le sexe par département par année
+#==================================================================#
+
+#préparation de la grille de sortie avec par mfrow
+par(mfrow = c(2, 2))
+par(mar = c(4,4,7,4))
+par(oma = c(3,1,1,1))
+
+# 2019
+
+data_2019 <- subset(data_normand,
+                    data_normand$annee.décès == 2019)
+
+table_2019 = with(data_2019, table(Sexe, Département.décès))
+head(table_2019,
+     n = 10)
+names(dimnames(table_2019)) <- c("Genre", "département")
+print(table_2019)
+
+freq_2019 = round(100*prop.table(table_2019),2)
+print(freq_2019)
+
+cols = round(100*prop.table(freq_2019,margin=2),2)
+Total = sum
+addmargins(cols,margin=1,FUN=Total,quiet=TRUE)
+
+graph5_2019 <- barplot(cols,
+                       beside = TRUE,
+                       col = c("deepskyblue", "plum"),
+                       ylab = "Pourcentage",
+                       xlab = "Département",
+                       ylim = c(0,70),  # Ajustement de l'axe Y
+                       las = 1)
+title(main = "2019", line = 0)
+
+text(x = graph5_2019,
+     y = cols + 0,3,  # Ajustez la position verticale des étiquettes
+     labels = paste(cols, "%"),
+     cex = 0.75,
+     pos = 3)
+
+legend("topleft",
+       horiz = TRUE,
+       col=c("deepskyblue",
+             "plum"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+
+# analyse statistique pour l'année 2019 
+
+print(table_2019)
+chisq <- chisq.test(table_2019)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table_2019)*min(dim(table_2019)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#1,07848%
+
+text(13, 62,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Très faible association"),
+     col = "#5586C7",
+     cex = 0.7)
+
+
+# 2020
+
+data_2020 <- subset(data_normand,
+                    data_normand$annee.décès == 2020)
+
+table_2020 = with(data_2020, table(Sexe, Département.décès))
+head(table_2020,
+     n = 100)
+
+names(dimnames(table_2020)) <- c("Genre", "département")
+print(table_2020)
+
+freq_2020 = round(100*prop.table(table_2020),2)
+print(freq_2020)
+
+cols = round(100*prop.table(freq_2020,margin=2),2)
+Total = sum
+addmargins(cols,margin=1,FUN=Total,quiet=TRUE)
+
+graph5_2020 <- barplot(cols,
+                       beside = TRUE,
+                       col = c("deepskyblue", "plum"),
+                       ylab = "Pourcentage",
+                       xlab = "Département",
+                       ylim = c(0,70),  # Ajustement de l'axe Y
+                       las = 1)
+title(main = "2020", line = 0)
+
+# Ajout des étiquettes sur les barres
+text(x = graph5_2020,
+     y = cols + 0,5,  # Ajustez la position verticale des étiquettes
+     cex = 0.75,
+     labels = paste(cols, "%"),
+     pos = 3)
+
+legend("topleft",
+       horiz = TRUE,
+       col=c("deepskyblue",
+             "plum"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+# Analyse statistique pour l'année 2020
+print(table_2020)
+chisq <- chisq.test(table_2020)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table_2020)*min(dim(table_2020)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#1.122274
+text(13, 62,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Très faible association"),
+     col = "#5586C7",
+     cex = 0.7)
+# 2021
+
+data_2021 <- subset(data_normand,
+                    data_normand$annee.décès == 2021)
+
+table_2021 = with(data_2021, table(Sexe, Département.décès))
+head(table_2021,
+     n = 100)
+names(dimnames(table_2021)) <- c("Genre", "département")
+print(table_2021)
+
+freq_2021 = round(100*prop.table(table_2021),2)
+print(freq_2021)
+
+cols = round(100*prop.table(freq_2021,margin=2),2)
+Total = sum
+addmargins(cols,margin=1,FUN=Total,quiet=TRUE)
+
+graph5_2021 <- barplot(cols,
+                       beside = TRUE,
+                       col = c("deepskyblue", "plum"),
+                       ylab = "Pourcentage",
+                       xlab = "Département",
+                       ylim = c(0,70),  # Ajustement de l'axe Y
+                       las = 1)
+title(main = "2021", line = 0)
+
+# Ajout des étiquettes sur les barres
+text(x = graph5_2021,
+     y = cols + 0,5,  # Ajustez la position verticale des étiquettes
+     cex = 0.75,
+     labels = paste(cols, "%"),
+     pos = 3)
+
+legend("topleft",
+       horiz = TRUE,
+       col=c("deepskyblue",
+             "plum"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+# Analyse statistique pour l'année 2021
+print(table_2021)
+chisq <- chisq.test(table_2021)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table_2021)*min(dim(table_2021)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#0.8656228
+text(13, 62,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Très faible association"),
+     col = "#5586C7",
+     cex = 0.7)
+
+# 2022
+
+data_2022 <- subset(data_normand,
+                    data_normand$annee.décès == 2022)
+
+table_2022 = with(data_2022, table(Sexe, Département.décès))
+head(table_2022,
+     n = 100)
+names(dimnames(table_2022)) <- c("Genre", "département")
+print(table_2022)
+
+freq_2022 = round(100*prop.table(table_2022),2)
+print(freq_2022)
+
+
+cols = round(100*prop.table(freq_2022,margin=2),2)
+Total = sum
+addmargins(cols,margin=1,FUN=Total,quiet=TRUE)
+
+graph5_2022 <- barplot(cols,
+                       beside = TRUE,
+                       col = c("deepskyblue", "plum"),
+                       ylab = "Pourcentage",
+                       xlab = "Département",
+                       ylim = c(0,70),  # Ajustement de l'axe Y
+                       las = 1)
+title(main = "2022", line = 0)
+
+# Ajout des étiquettes sur les barres
+text(x = graph5_2022,
+     y = cols + 0,5,  # Ajustez la position verticale des étiquettes
+     cex = 0.75,
+     labels = paste(cols, "%"),
+     pos = 3)
+
+legend("topleft",
+       horiz = TRUE,
+       col=c("deepskyblue",
+             "plum"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+
+# Analyse statistique pour l'année 2021
+
+print(table_2022)
+chisq <- chisq.test(table_2022)
+cat("valeur du khi-deux :",chisq$statistic)
+VCramer = sqrt(chisq$statistic/(sum(table_2022)*min(dim(table_2022)-1)))
+names (VCramer)="V-Cramer"
+print(100*VCramer)#0.7184884
+text(13, 62,
+     paste("V de Cramer = ",
+           round(VCramer*100,2),
+           "%\n Très faible association"),
+     col = "#5586C7",
+     cex = 0.7)
+
+
+par(mfrow=c(1,1))
+title(main = "Répartition des décès en Normandie selon le sexe \n par département par année", line = 5)
+#mtext("BUT science des données", side = 1, line = 5.5, at = 0)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 5.5, at = max(graph5_2022)+1.5)  # texte en bas à droite
+dev.off() # renitialiser les paramétres graphiques
+
+#==================================================================#
+# sixième graphique : répartition des décès selon l'âge des individus sur la période 2019 à 2022
+#==================================================================#
+
+dataframe$Age.décès <- as.numeric(dataframe$Age.décès)
+
+# suppression des individus décèdé après 118 ans car aucun français est censé être décédé apres cet âge sur cette période
+
+subset(dataframe,
+       subset = Age.décès <= 118) -> dataframe118
+graph6 = with(dataframe118,
+              hist(Age.décès,
+                   probability = TRUE,
+                   main = "Répartition des décès selon l'âge des individus sur la période 2019 à 2022",
+                   ylim = c(0, 0.04),
+                   las = 1,
+                   xlab = "Age de décès",
+                   ylab = "Densité",
+                   col = "lightblue2"))
+
+text(x = graph6$mids, 
+     y = graph6$density, 
+     labels = graph6$counts, 
+     pos = 3, 
+     cex = 0.7, 
+     col = "black")
+print(mean(dataframe$Age.décès))
+print(quantile(dataframe$Age.décès,
+               probs = c(0.5)))
+abline(v = mean(dataframe$Age.décès),
+       lty = 2,
+       col = "#2853C4",
+       lwd = 2)
+abline(v = quantile(dataframe$Age.décès,
+                    probs = c(0.25,0.75)),
+       lty =3,
+       col = "red",
+       lwd = 2)
+
+abline(v = quantile(dataframe$Age.décès,
+                    probs = c(0.5)),
+       lty =2,
+       col = "red",
+       lwd = 2)
+
+text(x = quantile(dataframe$Age.décès,
+                  probs = c(0.25,0.5,0.75)),
+     y = 0.04,
+     labels = c("Q1", "ME", "Q3"))
+
+#mtext("BUT science des données", side = 1, line = 4, at = 0)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = 120)  # texte en bas à droite
+
+#==================================================================#
+# septième graphique : répartition des décès selon l'âge des individus par région (nouvelles régions françaises)
+#==================================================================#
+
+boxplot(dataframe$Age.décès ~ dataframe$Région_abr,
+        col = couleurs <- "lightblue2",
+        pch = 1,
+        las=1,
+        main="Répartition des décès selon l'âge des individus par région",
+        xlab="Région",
+        ylab="Age")
+
+moyenne_par_région = tapply(dataframe$Age.décès, dataframe$Région_abr, mean)
+print(moyenne_par_région)
+# Calcule les moyennes par région
+moyenne_par_région <- tapply(dataframe$Age.décès, dataframe$Région_abr, mean)
+
+# Transforme la liste des moyennes en un vecteur
+moyennes_vector <- unlist(moyenne_par_région)
+
+# Calcule la moyenne de toutes les moyennes régionales
+moyenne_globale <- mean(moyennes_vector)
+
+# Affiche la moyenne globale
+print(moyenne_globale)
+
+# Calcule les médianes par région
+medianes_par_région <- tapply(dataframe$Age.décès, dataframe$Région_abr, median)
+
+# Transforme la liste des médianes en un vecteur
+medianes_vector <- unlist(medianes_par_région)
+
+# Calcule la moyenne de toutes les médianes régionales
+moyenne_medianes <- mean(medianes_vector)
+
+# Affiche la moyenne des médianes
+print(moyenne_medianes)
+
+lines(1:length(moyenne_par_région), moyenne_par_région, col = "gray50",lwd=2)
+points(1:length(moyenne_par_région), moyenne_par_région , col = "red", pch = 4,lwd=2)
+#mtext("BUT science des données", side = 1, line = 4, at = 1)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = 13.3)  # texte en bas à droite
+
+#==================================================================#
+# huitième graphique : répartition des décès en Normandie selon l'âge des individus en fonction du sexe
+#==================================================================#
+
+boxplot(data_normand$Age.décès ~data_normand$Sexe,
+        col = c("deepskyblue","plum1"),
+        las = 1,
+        main="Répartition des décès en Normandie selon l'âge des individus en fonction du sexe",
+        ylim = c(0,120),
+        xlab="Sexe",
+        ylab="Age")
+
+legend("topleft",
+       col=c("deepskyblue",
+         "plum1"),
+       legend=c("Homme","Femme"), bty="n",pch=15)
+
+
+moyennes_par_sexe <- tapply(data_normand$Age.décès, data_normand$Sexe, mean)
+print(moyennes_par_sexe)
+
+lines(1:length(moyennes_par_sexe), moyennes_par_sexe, col = "gray50", lwd = 2)
+points(1:length(moyennes_par_sexe), moyennes_par_sexe, col = "red", pch = 4, lwd = 2)
+#mtext("BUT science des données", side = 1, line = 4, at = 0.55)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4, at = 2.45)  # texte en bas à droite
+
+data_normand <- within(data_normand,
+                              {
+                                Sexe <- as.numeric(data_normand$Sexe)
+                                Age.décès <- as.numeric(data_normand$Age.décès)
+                              })
+
+str(data_normand)
+result_anova <- anova(lm(Age.décès ~ Sexe, data = data_normand))
+str(result_anova) # visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+print(100*rapport_correl) # Association trés faible => 5.875282
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+data_normand <- within(data_normand,
+                              {
+                                Sexe <- factor(Sexe, levels = c("1", "2"),
+                                               labels = c("Masculin","Féminin"))})
+
+#==================================================================#
+# neuvième graphique : répartition des décès en Normandie selon l'âge des individus en fonction du sexe par département
+#==================================================================#
+
+
+data_Calvados <- subset(data_normand,
+                        Département.décès == "Calvados")
+head(data_Calvados)
+x
+par(oma = c(3,1,0,1))
+par(mar = c(3,3,7,3))
+par(mfrow = c(2, 3)) 
+
+
+# Seine maritime
+data_Seine_Maritime <- subset(data_normand,
+                              Département.décès == "Seine-Maritime")
+
+boxplot(data_Seine_Maritime$Age.décès ~ data_Seine_Maritime$Sexe  ,
+        col = "#5C6F68",
+        main="",
+        las = 1,
+        ylim = c(0,120)
+)
+
+moyenne_Seine_Maritime = tapply(data_Seine_Maritime$Age.décès, data_Seine_Maritime$Sexe, mean)
+print(moyenne_Seine_Maritime)
+lines(1:length(moyenne_Seine_Maritime), moyenne_Seine_Maritime, col = "gray50",lwd=2)
+points(1:length(moyenne_Seine_Maritime), moyenne_Seine_Maritime , col = "red", pch = 4,lwd=2)
+
+####################### Calcule du rapport de corrélation pour Seine Maritime ##################
+data_Seine_Maritime <- within(data_Seine_Maritime,
+                              {
+                                Sexe <- as.numeric(data_Seine_Maritime$Sexe)
+                                Age.décès <- as.numeric(data_Seine_Maritime$Age.décès)
+                              })
+
+str(data_Seine_Maritime)
+result_anova <- anova(lm(Age.décès ~ Sexe, data = data_Seine_Maritime))
+str(result_anova) # visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+print(100*rapport_correl) # Association trés faible => 5.875282
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+data_Seine_Maritime <- within(data_Seine_Maritime,
+                              {
+                                Sexe <- factor(Sexe, levels = c("1", "2"),
+                                               labels = c("Masculin","Féminin"))})
+
+
+# Calvados
+
+boxplot(data_Calvados$Age.décès ~data_Calvados$Sexe  ,
+        col = "#8AA39B",
+        main="",
+        las = 1,
+        ylim = c(0,120)
+)
+
+moyenne_Calvados = tapply(data_Calvados$Age.décès, data_Calvados$Sexe, mean)
+print(moyenne_Calvados)
+lines(1:length(moyenne_Calvados), moyenne_Calvados, col = "gray50",lwd=2)
+points(1:length(moyenne_Calvados), moyenne_Calvados , col = "red", pch = 4,lwd=2)
+####################### Calcule du rapport de corrélation Calvados ##################
+
+# Il faut reconvertir les colonnes age de décés et sexe dans le format numerique
+data_Calvados <- within(data_Calvados,
+                        {
+                          Sexe <- as.numeric(data_Calvados$Sexe)
+                          Age.décès <- as.numeric(data_Calvados$Age.décès)
+                        })
+str(data_Calvados)
+result_anova <- anova(lm(Sexe ~ Age.décès, data = data_Calvados))
+str(result_anova) # Visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+data_Calvados <- within(data_Calvados,
+                        {
+                          Sexe <- factor(Sexe, levels = c("1", "2"),
+                                         labels = c("Masculin","Féminin"))})
+
+
+# Manche
+data_Manche <- subset(data_normand,
+                      Département.décès == "Manche")
+
+boxplot(data_Manche$Age.décès ~ data_Manche$Sexe  ,
+        col = "#95D9C3",
+        main="",
+        las = 1,
+        ylim = c(0,120)
+)
+
+moyenne_Manche = tapply(data_Manche$Age.décès, data_Manche$Sexe, mean)
+print(moyenne_Manche)
+lines(1:length(moyenne_Manche), moyenne_Manche, col = "gray50",lwd=2)
+points(1:length(moyenne_Manche), moyenne_Manche , col = "red", pch = 4,lwd=2)
+
+####################### Calcule du rapport de corrélation la Manche ##################
+data_Manche <- within(data_Manche,
+                      {
+                        Sexe <- as.numeric(data_Manche$Sexe)
+                        Age.décès <- as.numeric(data_Manche$Age.décès)
+                      })
+str(data_Manche)
+result_anova <- anova(lm(Age.décès ~ Sexe, data = data_Manche))
+str(result_anova) # Visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+print(100*rapport_correl) # Association trés faible = 7.466098
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+data_Manche <- within(data_Manche,
+                      {
+                        Sexe <- factor(Sexe, levels = c("1", "2"),
+                                       labels = c("Masculin","Féminin"))})
+
+# Eure
+data_Eure <- subset(data_normand,
+                    Département.décès == "Eure")
+
+boxplot(data_Eure$Age.décès ~data_Eure$Sexe  ,
+        col = "#A4F9C8",
+        main="",
+        las = 1,
+        ylim = c(0,120)
+)
+
+moyenne_Eure = tapply(data_Eure$Age.décès, data_Eure$Sexe, mean)
+print(moyenne_Eure)
+lines(1:length(moyenne_Eure), moyenne_Eure, col = "gray50",lwd=2)
+points(1:length(moyenne_Eure), moyenne_Eure , col = "red", pch = 4,lwd=2)
+
+####################### Calcule du rapport de corrélation Eure ##################
+
+data_Eure <- within(data_Eure,
+                    {
+                      Sexe <- as.numeric(data_Eure$Sexe)
+                      Age.décès <- as.numeric(data_Eure$Age.décès)
+                    })
+
+str(data_Eure)
+result_anova <- anova(lm(Age.décès ~ Sexe, data = data_Eure))
+str(result_anova) # Visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+print(100*rapport_correl) # Association trés faible = 7.605265
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+
+data_Eure <- within(data_Eure,
+                    {
+                      Sexe <- factor(Sexe, levels = c("1", "2"),
+                                     labels = c("Masculin","Féminin"))})
+
+
+
+
+# Orne
+data_Orne <- subset(data_normand,
+                    Département.décès == "Orne")
+
+boxplot(data_Orne$Age.décès ~ data_Orne$Sexe  ,
+        col =  "#A7FFF6",
+        main="",
+        las = 1,
+        ylim = c(0,120)
+)
+
+moyenne_Orne = tapply(data_Orne$Age.décès, data_Orne$Sexe, mean)
+print(moyenne_Orne)
+lines(1:length(moyenne_Orne), moyenne_Orne, col = "gray50",lwd=2)
+points(1:length(moyenne_Orne), moyenne_Orne , col = "red", pch = 4,lwd=2)
+final = 100*rapport_correl# Association trés faible = 5.881794
+
+
+####################### Calcule du rapport de corrélation Orne ##################
+data_Orne <- within(data_Orne,
+                    {
+                      Sexe <- as.numeric(data_Orne$Sexe)
+                      Age.décès <- as.numeric(data_Orne$Age.décès)
+                    })
+str(data_Orne)
+result_anova <- anova(lm(Age.décès ~ Sexe, data = data_Orne))
+str(result_anova) # Visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+print(100*rapport_correl) # Association trés faible = 6.698597%
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+data_Orne <- within(data_Orne,
+                    {
+                      Sexe <- factor(Sexe, levels = c("1", "2"),
+                                     labels = c("Masculin","Féminin"))})
+
+
+
+
+
+par (mfrow = c(1,1))
+title(main = "Répartition des décès en Normandie selon l'âge des individus \n en fonction du sexe par département \n \n")
+#mtext("BUT science des données", side = 1, line = 4.8, at = 0.4)  # texte à gauche
+mtext("Source : data.gouv.fr", side = 1, line = 4.8, at = 2.6)  # texte en bas à droite
+
+# Légende 
+
+par (mfrow = c(2,3))
+legend("center", legend = c("Seine-Maritime","Calvados","Manche","Eure","Orne"),
+       fill = c("#5C6F68",
+                "#8AA39B",
+                "#95D9C3",
+                "#A4F9C8",
+                "#A7FFF6"),
+       title = "Département",
+       cex = 1.6)
+
+dev.off() # renitialiser les paramétres graphiques
+
+
+# Calvados
+
+boxplot(data_Calvados$Age.décès ~data_Calvados$Sexe  ,
+        col = "#8AA39B",
+        main="",
+        xlab = "",
+        ylab = "",
+        las = 1,
+        ylim = c(0,120)
+)
+
+moyenne_Calvados = tapply(data_Calvados$Age.décès, data_Calvados$Sexe, mean)
+print(moyenne_Calvados)
+lines(1:length(moyenne_Calvados), moyenne_Calvados, col = "gray50",lwd=2)
+points(1:length(moyenne_Calvados), moyenne_Calvados , col = "red", pch = 4,lwd=2)
+####################### Calcule du rapport de corrélation Calvados ##################
+
+# Il faut reconvertir les colonnes age de décés et sexe dans le format numerique
+data_Calvados <- within(data_Calvados,
+                        {
+                          Sexe <- as.numeric(data_Calvados$Sexe)
+                          Age.décès <- as.numeric(data_Calvados$Age.décès)
+                        })
+str(data_Calvados)
+result_anova <- anova(lm(Sexe ~ Age.décès, data = data_Calvados))
+str(result_anova) # Visualisation de la valeur
+names(result_anova) # On visualise le nom des colonnes dont on a besoin
+sc_total = sum(result_anova$`Sum Sq`[1],result_anova$`Sum Sq`[2])
+rapport_correl = result_anova$`Sum Sq`[1]/sc_total
+final = 100*rapport_correl# Association trés faible = 5.881794
+x = round(final,2)
+text(x = 2.2, y = 116, labels = paste("Rapport de corrélation = ", x, "% \n Très faible association"),
+     col = "#5586C7", cex = 0.75)
+
+data_Calvados <- within(data_Calvados,
+                        {
+                          Sexe <- factor(Sexe, levels = c("1", "2"),
+                                         labels = c("Masculin","Féminin"))})
